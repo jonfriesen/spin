@@ -92,7 +92,7 @@ function WorkoutSelect({ onStart }) {
   const durations = [20, 30, 45, 60];
   
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 flex flex-col">
+    <div className="min-h-screen bg-gray-900 text-white p-6 flex flex-col relative">
       <h1 className="text-3xl font-bold text-center mb-8">Spin Workout</h1>
       
       <div className="mb-8">
@@ -146,6 +146,10 @@ function WorkoutSelect({ onStart }) {
       >
         Start Workout
       </button>
+
+      <div className="absolute top-2 right-3 text-xs text-gray-700 font-mono select-none">
+        {__GIT_COMMIT_HASH__}
+      </div>
     </div>
   );
 }
