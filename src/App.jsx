@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, ReferenceLine, ResponsiveContainer } from 'recharts';
+import { useWakeLock } from './useWakeLock';
 
 const segmentTypes = {
   warmup: { label: 'WARM UP', color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.2)' },
@@ -155,15 +156,19 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const lastSegmentRef = useRef(-1);
-  
+
   const segmentTimes = segments.reduce((acc, seg, i) => {
     const start = i === 0 ? 0 : acc[i - 1].end;
     acc.push({ start, end: start + seg.duration });
     return acc;
   }, []);
-  
+
   const totalDuration = segmentTimes[segmentTimes.length - 1].end;
-  
+  const isComplete = elapsed >= totalDuration;
+
+  // Keep screen awake during workout (when not paused and not complete)
+  useWakeLock(!isPaused && !isComplete);
+
   const currentSegmentIndex = segmentTimes.findIndex(t => elapsed >= t.start && elapsed < t.end);
   const currentSegment = segments[currentSegmentIndex] || segments[segments.length - 1];
   const currentTimes = segmentTimes[currentSegmentIndex] || segmentTimes[segmentTimes.length - 1];
@@ -199,10 +204,10 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const maxRpm = Math.ceil((Math.max(...rpms) + 10) / 10) * 10;
   
   useEffect(() => {
-    if (isPaused || elapsed >= totalDuration) return;
+    if (isPaused || isComplete) return;
     const interval = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(interval);
-  }, [isPaused, elapsed, totalDuration]);
+  }, [isPaused, isComplete]);
   
   useEffect(() => {
     if (currentSegmentIndex !== lastSegmentRef.current && currentSegmentIndex >= 0) {
@@ -215,7 +220,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
     }
   }, [currentSegmentIndex, segments, isMuted]);
   
-  if (elapsed >= totalDuration) {
+  if (isComplete) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">
         <div className="text-6xl mb-4">🎉</div>
