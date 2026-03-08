@@ -336,7 +336,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
       </div>
       
       {/* Right Panel - Chart */}
-      <div className="flex-1 px-1 py-2 flex flex-col min-w-0">
+      <div className="flex-1 px-1 py-2 flex flex-col min-w-0 relative">
         <div 
           className="text-center py-2 px-4 rounded-lg mb-2 text-xl font-bold shrink-0"
           style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, borderLeft: `4px solid ${typeInfo.color}` }}
@@ -427,6 +427,19 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
           <span className="text-orange-400/70">resistance</span>
           <span className="text-purple-400">rpm</span>
         </div>
+
+        {/* Countdown overlay for last 5 seconds of a segment */}
+        {timeLeftInSegment <= 5 && timeLeftInSegment > 0 && currentSegmentIndex < segments.length - 1 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div
+              key={Math.ceil(timeLeftInSegment)}
+              className="countdown-number text-white font-bold select-none"
+              style={{ fontSize: '20rem', lineHeight: 1, textShadow: '0 0 80px rgba(255,255,255,0.4)' }}
+            >
+              {Math.ceil(timeLeftInSegment)}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
