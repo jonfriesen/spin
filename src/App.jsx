@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, ReferenceLine, ResponsiveContainer } from 'recharts';
 import { useWakeLock } from './useWakeLock';
 
@@ -16,7 +16,7 @@ function generateWorkout(type, durationMins) {
   const segments = [];
   const totalSeconds = durationMins * 60;
   const warmupTime = Math.min(60, Math.floor(totalSeconds * 0.1));
-  const cooldownTime = Math.floor(totalSeconds * 0.1);
+  const cooldownTime = Math.min(60, Math.floor(totalSeconds * 0.1));
   const mainTime = totalSeconds - warmupTime - cooldownTime;
   
   segments.push({ type: 'warmup', duration: warmupTime, resistance: 12, rpm: 80 });
@@ -59,6 +59,13 @@ function generateWorkout(type, durationMins) {
     }
   }
   
+  // Absorb any remaining time into a final recovery segment
+  const usedTime = segments.reduce((sum, s) => sum + s.duration, 0) + cooldownTime;
+  const remainingTime = totalSeconds - usedTime;
+  if (remainingTime > 0 && segments.length > 1) {
+    segments[segments.length - 1].duration += remainingTime;
+  }
+
   segments.push({ type: 'cooldown', duration: cooldownTime, resistance: 10, rpm: 70 });
   return segments;
 }
@@ -164,12 +171,14 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const transitionsRef = useRef(null);
   const segmentRefs = useRef([]);
   const lastFrameTime = useRef(null);
+  const isMutedRef = useRef(isMuted);
+  isMutedRef.current = isMuted;
 
-  const segmentTimes = segments.reduce((acc, seg, i) => {
+  const segmentTimes = useMemo(() => segments.reduce((acc, seg, i) => {
     const start = i === 0 ? 0 : acc[i - 1].end;
     acc.push({ start, end: start + seg.duration });
     return acc;
-  }, []);
+  }, []), [segments]);
 
   const totalDuration = segmentTimes[segmentTimes.length - 1].end;
   const isComplete = elapsed >= totalDuration;
@@ -180,8 +189,8 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const currentSegmentIndex = segmentTimes.findIndex(t => elapsed >= t.start && elapsed < t.end);
   const currentSegment = segments[currentSegmentIndex] || segments[segments.length - 1];
   const currentTimes = segmentTimes[currentSegmentIndex] || segmentTimes[segmentTimes.length - 1];
-  const timeLeftInSegment = currentTimes.end - elapsed;
-  const timeLeft = totalDuration - elapsed;
+  const timeLeftInSegment = Math.max(0, currentTimes.end - elapsed);
+  const timeLeft = Math.max(0, totalDuration - elapsed);
   
   // Calculate fractional progress through the workout
   const segmentProgress = currentSegmentIndex >= 0
@@ -224,7 +233,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
     const tick = (now) => {
       if (lastFrameTime.current != null) {
         const dt = (now - lastFrameTime.current) / 1000;
-        setElapsed(e => e + dt);
+        setElapsed(e => Math.min(e + dt, totalDuration));
       }
       lastFrameTime.current = now;
       raf = requestAnimationFrame(tick);
@@ -236,7 +245,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   useEffect(() => {
     if (currentSegmentIndex !== lastSegmentRef.current && currentSegmentIndex >= 0) {
       lastSegmentRef.current = currentSegmentIndex;
-      if (!isMuted) {
+      if (!isMutedRef.current) {
         const seg = segments[currentSegmentIndex];
         const typeInfo = segmentTypes[seg.type];
         speak(typeInfo.label);
@@ -251,7 +260,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
         container.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
       }
     }
-  }, [currentSegmentIndex, segments, isMuted]);
+  }, [currentSegmentIndex, segments]);
   
   if (isComplete) {
     return (
@@ -328,7 +337,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
           <button onClick={() => setIsPaused(!isPaused)} className="flex-1 py-3 rounded-lg bg-gray-700 font-bold">
             {isPaused ? '▶ Resume' : '⏸ Pause'}
           </button>
-          <button onClick={() => setIsMuted(!isMuted)} className={`px-4 py-3 rounded-lg ${isMuted ? 'bg-red-600' : 'bg-gray-700'}`}>
+          <button onClick={() => { if (!isMuted) speechSynthesis?.cancel(); setIsMuted(!isMuted); }} className={`px-4 py-3 rounded-lg ${isMuted ? 'bg-red-600' : 'bg-gray-700'}`}>
             {isMuted ? '🔇' : '🔊'}
           </button>
           <button onClick={onEnd} className="px-4 py-3 rounded-lg bg-gray-700">✕</button>
