@@ -2,6 +2,8 @@
 
 A minimal, offline-capable PWA for guided spin bike workouts. Designed for landscape iPad use on the handlebars.
 
+![Spin Workout — Climb segment](screenshot.png)
+
 ## Features
 
 - **4 workout types**: Recovery, HIIT, Strength, Endurance

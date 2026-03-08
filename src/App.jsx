@@ -1,15 +1,14 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, ReferenceLine, ResponsiveContainer } from 'recharts';
 import { useWakeLock } from './useWakeLock';
 
 const segmentTypes = {
-  warmup: { label: 'WARM UP', color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.2)' },
-  recover: { label: 'RECOVER', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.2)' },
-  sprint: { label: 'SPRINT!', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.2)' },
-  climb: { label: 'CLIMB', color: '#f97316', bgColor: 'rgba(249, 115, 22, 0.2)' },
-  steady: { label: 'STEADY', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.2)' },
-  cooldown: { label: 'COOL DOWN', color: '#06b6d4', bgColor: 'rgba(6, 182, 212, 0.2)' },
-  stand: { label: 'STAND!', color: '#ec4899', bgColor: 'rgba(236, 72, 153, 0.2)' },
+  warmup:   { label: 'WARM UP',   cue: 'Light spin, get loose',        color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.15)' },
+  recover:  { label: 'RECOVER',   cue: 'Easy spin, catch your breath',  color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.12)' },
+  sprint:   { label: 'SPRINT!',   cue: 'All out \u2014 max effort',     color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
+  climb:    { label: 'CLIMB',     cue: 'Heavy resistance, grind it',    color: '#f97316', bgColor: 'rgba(249, 115, 22, 0.13)' },
+  steady:   { label: 'STEADY',    cue: 'Moderate effort, hold pace',    color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.12)' },
+  cooldown: { label: 'COOL DOWN', cue: 'Easy pace, bring it down',      color: '#06b6d4', bgColor: 'rgba(6, 182, 212, 0.12)' },
+  stand:    { label: 'STAND!',    cue: 'Out of the saddle, push',       color: '#ec4899', bgColor: 'rgba(236, 72, 153, 0.13)' },
 };
 
 function generateWorkout(type, durationMins) {
@@ -168,8 +167,6 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const lastSegmentRef = useRef(-1);
-  const transitionsRef = useRef(null);
-  const segmentRefs = useRef([]);
   const lastFrameTime = useRef(null);
   const isMutedRef = useRef(isMuted);
   isMutedRef.current = isMuted;
@@ -192,39 +189,15 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const timeLeftInSegment = Math.max(0, currentTimes.end - elapsed);
   const timeLeft = Math.max(0, totalDuration - elapsed);
   
-  // Calculate fractional progress through the workout
+  // Segment progress as percentage
   const segmentProgress = currentSegmentIndex >= 0
     ? (elapsed - currentTimes.start) / Math.max(1, currentTimes.end - currentTimes.start)
     : 0;
-  const fractionalPos = (currentSegmentIndex >= 0 ? currentSegmentIndex : 0) + segmentProgress;
 
-  // Build chart data with numeric positions
-  const allChartData = segments.map((seg, i) => ({
-    pos: i,
-    name: formatTime(segmentTimes[i].start),
-    resistance: seg.resistance,
-    rpm: seg.rpm,
-    type: seg.type,
-  }));
-  
-  // Sliding window: keep the green line at ~1/3 of visible area
-  const maxVisible = 12;
-  const windowStartFloat = fractionalPos - maxVisible / 3;
-  const windowStart = Math.max(0, Math.min(
-    Math.round(windowStartFloat),
-    segments.length - maxVisible
-  ));
-  const windowEnd = Math.min(segments.length, windowStart + maxVisible);
-  const chartData = allChartData.slice(windowStart, windowEnd);
-  
-  // Calculate dynamic axis ranges based on visible window
-  const visibleSegments = segments.slice(windowStart, windowEnd);
-  const resistances = visibleSegments.map(s => s.resistance);
-  const rpms = visibleSegments.map(s => s.rpm);
-  const minRes = Math.max(0, Math.floor(Math.min(...resistances) / 5) * 5);
-  const maxRes = Math.ceil((Math.max(...resistances) + 5) / 5) * 5;
-  const minRpm = Math.max(0, Math.floor((Math.min(...rpms) - 5) / 10) * 10);
-  const maxRpm = Math.ceil((Math.max(...rpms) + 10) / 10) * 10;
+  // Upcoming segments for the "coming up" panel
+  const upcomingSegments = segments.slice(currentSegmentIndex + 1, currentSegmentIndex + 5);
+  const upcomingTimes = segmentTimes.slice(currentSegmentIndex + 1, currentSegmentIndex + 5);
+
   
   useEffect(() => {
     if (isPaused || isComplete) return;
@@ -250,15 +223,6 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
         const typeInfo = segmentTypes[seg.type];
         speak(typeInfo.label);
       }
-      // Scroll active segment to top third of the scroll area
-      const container = transitionsRef.current;
-      const el = segmentRefs.current[currentSegmentIndex];
-      if (container && el) {
-        const containerHeight = container.clientHeight;
-        const targetOffset = el.offsetTop - container.offsetTop;
-        const scrollTo = targetOffset - containerHeight / 3;
-        container.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
-      }
     }
   }, [currentSegmentIndex, segments]);
   
@@ -278,177 +242,129 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const typeInfo = segmentTypes[currentSegment.type];
   
   return (
-    <div className="bg-gray-900 text-white flex overflow-hidden" style={{ height: '100dvh', maxHeight: '100dvh' }}>
-      {/* Left Panel */}
-      <div className="w-80 bg-gray-800 p-4 flex flex-col shrink-0 h-full overflow-hidden">
-        <div className="bg-gray-700/50 rounded-lg p-3 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-400 text-xs uppercase tracking-widest">{workoutType}</span>
-            <span className="text-gray-500 text-xs">{duration} min</span>
+    <div
+      className="text-white flex flex-col overflow-hidden transition-colors duration-500"
+      style={{ height: '100dvh', maxHeight: '100dvh', backgroundColor: typeInfo.bgColor }}
+    >
+      {/* Top bar */}
+      <div className="flex justify-between items-center px-6 py-3 shrink-0" style={{ background: 'rgba(0,0,0,0.3)' }}>
+        <div>
+          <div className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            {workoutType} · {duration} min
           </div>
-          <div className="text-6xl font-mono font-bold tracking-tight">{formatTime(timeLeft)}</div>
-        </div>
-        
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1 bg-gray-700/30 rounded-lg p-3 text-center">
-            <div className="text-gray-500 text-xs uppercase tracking-wide mb-1">res</div>
-            <div className="text-4xl font-bold">{currentSegment.resistance}</div>
-          </div>
-          <div className="flex-1 bg-gray-700/30 rounded-lg p-3 text-center">
-            <div className="text-gray-500 text-xs uppercase tracking-wide mb-1">rpm</div>
-            <div className="text-4xl font-bold">{currentSegment.rpm}</div>
+          <div className="text-lg font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            {formatTime(timeLeft)} remaining
           </div>
         </div>
-        
-        <div className="text-gray-400 text-sm mb-2">transitions</div>
-        <div ref={transitionsRef} className="flex-1 overflow-auto space-y-2 min-h-0 pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4b5563 transparent' }}>
-          {segments.map((seg, i) => {
-            const times = segmentTimes[i];
-            const isCurrent = i === currentSegmentIndex;
-            const isPast = elapsed >= times.end;
-            const info = segmentTypes[seg.type];
-            
-            return (
-              <div
-                key={i}
-                ref={el => segmentRefs.current[i] = el}
-                onClick={() => setElapsed(times.start)}
-                className={`p-3 rounded-lg flex items-center gap-3 transition-all cursor-pointer hover:brightness-125 ${isPast ? 'opacity-40' : ''}`}
-                style={{ 
-                  backgroundColor: isCurrent ? info.bgColor : 'rgba(55, 65, 81, 0.5)',
-                  borderLeft: isCurrent ? `4px solid ${info.color}` : '4px solid transparent'
-                }}
-              >
-                <div className="flex-1">
-                  <div className="text-xs text-gray-400">{formatTime(times.start)}</div>
-                  <div className="font-bold" style={{ color: info.color }}>{info.label}</div>
-                </div>
-                <div className="text-right text-sm">
-                  <div className="font-bold" style={{ color: isCurrent ? '#fbbf24' : '#9ca3af' }}>
-                    {isCurrent ? formatTime(timeLeftInSegment) : formatTime(seg.duration)}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        <div className="flex gap-2 mt-4">
-          <button onClick={() => setIsPaused(!isPaused)} className="flex-1 py-3 rounded-lg bg-gray-700 font-bold">
-            {isPaused ? '▶ Resume' : '⏸ Pause'}
+        <div className="flex gap-3">
+          <button
+            onClick={() => setIsPaused(!isPaused)}
+            className="w-10 h-10 rounded-lg text-lg" style={{ background: 'rgba(255,255,255,0.1)' }}
+          >
+            {isPaused ? '▶' : '⏸'}
           </button>
-          <button onClick={() => { if (!isMuted) speechSynthesis?.cancel(); setIsMuted(!isMuted); }} className={`px-4 py-3 rounded-lg ${isMuted ? 'bg-red-600' : 'bg-gray-700'}`}>
+          <button
+            onClick={() => { if (!isMuted) speechSynthesis?.cancel(); setIsMuted(!isMuted); }}
+            className="w-10 h-10 rounded-lg text-lg" style={{ background: isMuted ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.1)' }}
+          >
             {isMuted ? '🔇' : '🔊'}
           </button>
-          <button onClick={onEnd} className="px-4 py-3 rounded-lg bg-gray-700">✕</button>
+          <button
+            onClick={onEnd}
+            className="w-10 h-10 rounded-lg text-lg" style={{ background: 'rgba(255,255,255,0.1)' }}
+          >
+            ✕
+          </button>
         </div>
       </div>
-      
-      {/* Right Panel - Chart */}
-      <div className="flex-1 px-1 py-2 flex flex-col min-w-0 relative">
-        <div 
-          className="text-center py-2 px-4 rounded-lg mb-2 text-xl font-bold shrink-0"
-          style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, borderLeft: `4px solid ${typeInfo.color}` }}
-        >
-          {typeInfo.label} — {currentSegment.resistance} res @ {currentSegment.rpm} rpm
-        </div>
-        
-        <div className="flex-1 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 10, right: 35, bottom: 10, left: 0 }}>
-              <defs>
-                <linearGradient id="resistanceGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity={0.25}/>
-                  <stop offset="100%" stopColor="#f97316" stopOpacity={0.05}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke="#ffffff" 
-                strokeOpacity={0.08}
-                vertical={false}
-              />
-              <XAxis 
-                dataKey="pos" 
-                type="number"
-                domain={[windowStart, windowEnd - 1]}
-                tick={{ fill: '#6b7280', fontSize: 10 }} 
-                axisLine={{ stroke: '#374151' }}
-                tickLine={false}
-                ticks={chartData.filter((_, i) => i % Math.max(1, Math.ceil(chartData.length / 6)) === 0).map(d => d.pos)}
-                tickFormatter={(val) => {
-                  const idx = Math.round(val);
-                  return idx >= 0 && idx < segmentTimes.length ? formatTime(segmentTimes[idx].start) : '';
-                }}
-              />
-              <YAxis 
-                yAxisId="resistance" 
-                domain={[minRes, maxRes]} 
-                tick={{ fill: '#fb923c', fontSize: 11 }} 
-                axisLine={false}
-                tickLine={false}
-                width={30}
-              />
-              <YAxis 
-                yAxisId="rpm" 
-                orientation="right" 
-                domain={[minRpm, maxRpm]} 
-                tick={{ fill: '#a78bfa', fontSize: 11 }} 
-                axisLine={false}
-                tickLine={false}
-                width={30}
-              />
-              <Area
-                yAxisId="resistance"
-                type="stepAfter"
-                dataKey="resistance"
-                stroke="none"
-                fill="url(#resistanceGradient)"
-                isAnimationActive={true}
-                animationDuration={500}
-                animationEasing="ease-in-out"
-              />
-              <Line 
-                yAxisId="rpm" 
-                type="monotone" 
-                dataKey="rpm" 
-                stroke="#a78bfa" 
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={true}
-                animationDuration={500}
-                animationEasing="ease-in-out"
-              />
-              {fractionalPos >= windowStart && fractionalPos <= windowEnd - 1 && (
-                <ReferenceLine
-                  yAxisId="resistance"
-                  x={fractionalPos}
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  strokeOpacity={0.7}
-                />
-              )}
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-        
-        <div className="flex justify-center gap-6 text-xs py-1 shrink-0">
-          <span className="text-orange-400/70">resistance</span>
-          <span className="text-purple-400">rpm</span>
-        </div>
 
-        {/* Countdown overlay for last 5 seconds of a segment */}
-        {timeLeftInSegment <= 5 && timeLeftInSegment > 0 && currentSegmentIndex < segments.length - 1 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div
-              key={Math.ceil(timeLeftInSegment)}
-              className="countdown-number text-white font-bold select-none"
-              style={{ fontSize: '20rem', lineHeight: 1, textShadow: '0 0 80px rgba(255,255,255,0.4)' }}
-            >
-              {Math.ceil(timeLeftInSegment)}
+      {/* Main content */}
+      <div className="flex-1 flex min-h-0">
+        {/* Center hero */}
+        <div className="flex-1 flex flex-col items-center justify-center relative px-10">
+          <div
+            className="font-black tracking-wide mb-2"
+            style={{ fontSize: '5rem', color: typeInfo.color, textShadow: '0 0 60px rgba(255,255,255,0.2)' }}
+          >
+            {typeInfo.label}
+          </div>
+          <div className="text-xl mb-8" style={{ color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}>
+            {typeInfo.cue}
+          </div>
+
+          {/* Res / Timer / RPM row */}
+          <div className="flex items-baseline gap-12">
+            <div className="flex flex-col items-center">
+              <div className="text-6xl font-extrabold font-mono">{currentSegment.resistance}</div>
+              <div className="text-xs uppercase tracking-widest mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>res</div>
+            </div>
+            <div className="font-mono font-bold" style={{ fontSize: '8rem', lineHeight: 1, letterSpacing: '-0.02em' }}>
+              {formatTime(timeLeftInSegment)}
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="text-6xl font-extrabold font-mono">{currentSegment.rpm}</div>
+              <div className="text-xs uppercase tracking-widest mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>rpm</div>
             </div>
           </div>
+
+          {/* Segment progress bar */}
+          <div className="w-4/5 max-w-lg h-1.5 rounded-full mt-8 overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${segmentProgress * 100}%`, backgroundColor: 'rgba(255,255,255,0.7)' }}
+            />
+          </div>
+
+          {/* Countdown overlay */}
+          {timeLeftInSegment <= 5 && timeLeftInSegment > 0 && currentSegmentIndex < segments.length - 1 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div
+                key={Math.ceil(timeLeftInSegment)}
+                className="countdown-number text-white font-black select-none"
+                style={{ fontSize: '20rem', lineHeight: 1, textShadow: '0 0 120px rgba(255,255,255,0.4)' }}
+              >
+                {Math.ceil(timeLeftInSegment)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Coming up panel */}
+        {upcomingSegments.length > 0 && (
+          <div className="w-72 shrink-0 flex flex-col justify-center px-5 py-6 gap-3" style={{ background: 'rgba(0,0,0,0.2)' }}>
+            <div className="text-xs uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Coming up</div>
+            {upcomingSegments.map((seg, i) => {
+              const info = segmentTypes[seg.type];
+              return (
+                <div
+                  key={currentSegmentIndex + 1 + i}
+                  onClick={() => setElapsed(upcomingTimes[i].start)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:brightness-125 transition-all`}
+                  style={{ background: i === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)' }}
+                >
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: info.color }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm" style={{ color: info.color }}>{info.label}</div>
+                    <div className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{info.cue}</div>
+                  </div>
+                  <div className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    {formatTime(seg.duration)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
+      </div>
+
+      {/* Overall progress */}
+      <div className="px-6 pb-4 shrink-0">
+        <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${(elapsed / totalDuration) * 100}%`, background: 'rgba(255,255,255,0.3)' }}
+          />
+        </div>
       </div>
     </div>
   );

@@ -13,6 +13,9 @@ const getGitCommitHash = () => {
 export default defineConfig({
   plugins: [react()],
   base: './',
+  server: {
+    allowedHosts: ['spin-pwa.exe.xyz'],
+  },
   define: {
     __GIT_COMMIT_HASH__: JSON.stringify(getGitCommitHash())
   }
