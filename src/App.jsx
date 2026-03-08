@@ -160,6 +160,8 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const lastSegmentRef = useRef(-1);
+  const transitionsRef = useRef(null);
+  const segmentRefs = useRef([]);
 
   const segmentTimes = segments.reduce((acc, seg, i) => {
     const start = i === 0 ? 0 : acc[i - 1].end;
@@ -221,6 +223,15 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
         const typeInfo = segmentTypes[seg.type];
         speak(typeInfo.label);
       }
+      // Scroll active segment to top third of the scroll area
+      const container = transitionsRef.current;
+      const el = segmentRefs.current[currentSegmentIndex];
+      if (container && el) {
+        const containerHeight = container.clientHeight;
+        const targetOffset = el.offsetTop - container.offsetTop;
+        const scrollTo = targetOffset - containerHeight / 3;
+        container.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
+      }
     }
   }, [currentSegmentIndex, segments, isMuted]);
   
@@ -263,7 +274,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
         </div>
         
         <div className="text-gray-400 text-sm mb-2">transitions</div>
-        <div className="flex-1 overflow-auto space-y-2 min-h-0 pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4b5563 transparent' }}>
+        <div ref={transitionsRef} className="flex-1 overflow-auto space-y-2 min-h-0 pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4b5563 transparent' }}>
           {segments.map((seg, i) => {
             const times = segmentTimes[i];
             const isCurrent = i === currentSegmentIndex;
@@ -273,6 +284,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
             return (
               <div
                 key={i}
+                ref={el => segmentRefs.current[i] = el}
                 onClick={() => setElapsed(times.start)}
                 className={`p-3 rounded-lg flex items-center gap-3 transition-all cursor-pointer hover:brightness-125 ${isPast ? 'opacity-40' : ''}`}
                 style={{ 
