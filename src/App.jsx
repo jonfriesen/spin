@@ -64,8 +64,9 @@ function generateWorkout(type, durationMins) {
 }
 
 function formatTime(seconds) {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+  const total = Math.floor(seconds);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
@@ -162,6 +163,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const lastSegmentRef = useRef(-1);
   const transitionsRef = useRef(null);
   const segmentRefs = useRef([]);
+  const lastFrameTime = useRef(null);
 
   const segmentTimes = segments.reduce((acc, seg, i) => {
     const start = i === 0 ? 0 : acc[i - 1].end;
@@ -181,20 +183,26 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const timeLeftInSegment = currentTimes.end - elapsed;
   const timeLeft = totalDuration - elapsed;
   
-  // Build chart data
+  // Calculate fractional progress through the workout
+  const segmentProgress = currentSegmentIndex >= 0
+    ? (elapsed - currentTimes.start) / Math.max(1, currentTimes.end - currentTimes.start)
+    : 0;
+  const fractionalPos = (currentSegmentIndex >= 0 ? currentSegmentIndex : 0) + segmentProgress;
+
+  // Build chart data with numeric positions
   const allChartData = segments.map((seg, i) => ({
-    index: i,
+    pos: i,
     name: formatTime(segmentTimes[i].start),
     resistance: seg.resistance,
     rpm: seg.rpm,
     type: seg.type,
-    isCurrent: i === currentSegmentIndex,
   }));
   
-  // Sliding window: show max 12 transitions, centered around current position
+  // Sliding window: keep the green line at ~1/3 of visible area
   const maxVisible = 12;
+  const windowStartFloat = fractionalPos - maxVisible / 3;
   const windowStart = Math.max(0, Math.min(
-    currentSegmentIndex - Math.floor(maxVisible / 4),
+    Math.round(windowStartFloat),
     segments.length - maxVisible
   ));
   const windowEnd = Math.min(segments.length, windowStart + maxVisible);
@@ -211,8 +219,18 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   
   useEffect(() => {
     if (isPaused || isComplete) return;
-    const interval = setInterval(() => setElapsed(e => e + 1), 1000);
-    return () => clearInterval(interval);
+    lastFrameTime.current = null;
+    let raf;
+    const tick = (now) => {
+      if (lastFrameTime.current != null) {
+        const dt = (now - lastFrameTime.current) / 1000;
+        setElapsed(e => e + dt);
+      }
+      lastFrameTime.current = now;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [isPaused, isComplete]);
   
   useEffect(() => {
@@ -342,11 +360,17 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
                 vertical={false}
               />
               <XAxis 
-                dataKey="name" 
+                dataKey="pos" 
+                type="number"
+                domain={[windowStart, windowEnd - 1]}
                 tick={{ fill: '#6b7280', fontSize: 10 }} 
                 axisLine={{ stroke: '#374151' }}
                 tickLine={false}
-                interval={Math.max(0, Math.floor(chartData.length / 6) - 1)}
+                ticks={chartData.filter((_, i) => i % Math.max(1, Math.ceil(chartData.length / 6)) === 0).map(d => d.pos)}
+                tickFormatter={(val) => {
+                  const idx = Math.round(val);
+                  return idx >= 0 && idx < segmentTimes.length ? formatTime(segmentTimes[idx].start) : '';
+                }}
               />
               <YAxis 
                 yAxisId="resistance" 
@@ -386,10 +410,10 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
                 animationDuration={500}
                 animationEasing="ease-in-out"
               />
-              {currentSegmentIndex >= windowStart && currentSegmentIndex < windowEnd && (
+              {fractionalPos >= windowStart && fractionalPos <= windowEnd - 1 && (
                 <ReferenceLine
                   yAxisId="resistance"
-                  x={chartData[currentSegmentIndex - windowStart]?.name}
+                  x={fractionalPos}
                   stroke="#22c55e"
                   strokeWidth={2}
                   strokeOpacity={0.7}
