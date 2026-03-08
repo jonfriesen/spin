@@ -92,7 +92,7 @@ function WorkoutSelect({ onStart }) {
   const durations = [20, 30, 45, 60];
   
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 flex flex-col relative">
+    <div className="bg-gray-900 text-white p-6 flex flex-col relative" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'auto' }}>
       <h1 className="text-3xl font-bold text-center mb-8">Spin Workout</h1>
       
       <div className="mb-8">
@@ -226,7 +226,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   
   if (isComplete) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">
+      <div className="bg-gray-900 text-white flex flex-col items-center justify-center p-6" style={{ height: '100dvh', maxHeight: '100dvh' }}>
         <div className="text-6xl mb-4">🎉</div>
         <h1 className="text-4xl font-bold mb-4">Workout Complete!</h1>
         <p className="text-xl text-gray-400 mb-8">{duration} minute {workoutType} ride finished</p>
@@ -240,7 +240,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   const typeInfo = segmentTypes[currentSegment.type];
   
   return (
-    <div className="h-screen bg-gray-900 text-white flex overflow-hidden">
+    <div className="bg-gray-900 text-white flex overflow-hidden" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       {/* Left Panel */}
       <div className="w-80 bg-gray-800 p-4 flex flex-col shrink-0 h-full overflow-hidden">
         <div className="bg-gray-700/50 rounded-lg p-3 mb-4">
