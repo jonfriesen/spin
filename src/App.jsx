@@ -99,7 +99,7 @@ function WorkoutSelect({ onStart }) {
   const durations = [20, 30, 45, 60];
   
   return (
-    <div className="bg-gray-900 text-white p-6 flex flex-col relative" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'auto' }}>
+    <div className="bg-gray-900 text-white p-6 flex flex-col relative" style={{ height: '100%', maxHeight: '100%', overflow: 'auto' }}>
       <h1 className="text-3xl font-bold text-center mb-8">Spin Workout</h1>
       
       <div className="mb-8">
@@ -226,9 +226,17 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
     }
   }, [currentSegmentIndex, segments]);
   
+  // Sync <html> background with segment color so safe-area padding matches
+  useEffect(() => {
+    const color = isComplete ? '#111827' : segmentTypes[currentSegment.type].bgColor;
+    document.documentElement.style.backgroundColor = color;
+    document.documentElement.style.transition = 'background-color 500ms';
+    return () => { document.documentElement.style.backgroundColor = ''; document.documentElement.style.transition = ''; };
+  }, [currentSegment.type, isComplete]);
+
   if (isComplete) {
     return (
-      <div className="bg-gray-900 text-white flex flex-col items-center justify-center p-6" style={{ height: '100dvh', maxHeight: '100dvh' }}>
+      <div className="bg-gray-900 text-white flex flex-col items-center justify-center p-6" style={{ height: '100%', maxHeight: '100%' }}>
         <div className="text-6xl mb-4">🎉</div>
         <h1 className="text-4xl font-bold mb-4">Workout Complete!</h1>
         <p className="text-xl text-gray-400 mb-8">{duration} minute {workoutType} ride finished</p>
@@ -244,7 +252,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   return (
     <div
       className="text-white flex flex-col overflow-hidden transition-colors duration-500"
-      style={{ height: '100dvh', maxHeight: '100dvh', backgroundColor: typeInfo.bgColor }}
+      style={{ height: '100%', maxHeight: '100%', backgroundColor: typeInfo.bgColor }}
     >
       {/* Top bar */}
       <div className="flex justify-between items-center px-6 py-3 shrink-0" style={{ background: 'rgba(0,0,0,0.3)' }}>

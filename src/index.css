@@ -2,9 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
+html {
   height: 100dvh;
   max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body, #root {
+  height: 100%;
+  max-height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -20,6 +28,7 @@ body {
 /* PWA safe area padding for notched devices */
 @supports (padding: env(safe-area-inset-left)) {
   body {
+    padding-top: env(safe-area-inset-top);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     padding-bottom: env(safe-area-inset-bottom);
