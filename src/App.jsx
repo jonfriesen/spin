@@ -99,44 +99,44 @@ function WorkoutSelect({ onStart }) {
   const durations = [20, 30, 45, 60];
   
   return (
-    <div className="bg-gray-900 text-white p-6 flex flex-col relative" style={{ height: '100%', maxHeight: '100%', overflow: 'auto' }}>
-      <h1 className="text-3xl font-bold text-center mb-8">Spin Workout</h1>
+    <div className="bg-gray-900 text-white p-4 sm:p-6 flex flex-col relative" style={{ height: '100%', maxHeight: '100%', overflow: 'auto' }}>
+      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">Spin Workout</h1>
       
-      <div className="mb-8">
-        <h2 className="text-xl mb-4 text-gray-400">Select Workout Type</h2>
-        <div className="grid grid-cols-2 gap-4">
+      <div className="mb-6 sm:mb-8">
+        <h2 className="text-lg sm:text-xl mb-3 sm:mb-4 text-gray-400">Select Workout Type</h2>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {workoutTypes.map(t => (
             <button
               key={t.id}
               onClick={() => setSelectedType(t.id)}
-              className={`p-4 rounded-xl text-left transition-all ${
+              className={`p-3 sm:p-4 rounded-xl text-left transition-all ${
                 selectedType === t.id 
                   ? 'bg-blue-600 ring-2 ring-blue-400' 
                   : 'bg-gray-800 hover:bg-gray-700'
               }`}
             >
-              <div className="text-3xl mb-2">{t.icon}</div>
-              <div className="font-semibold text-lg">{t.name}</div>
-              <div className="text-sm text-gray-400">{t.desc}</div>
+              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{t.icon}</div>
+              <div className="font-semibold text-base sm:text-lg">{t.name}</div>
+              <div className="text-xs sm:text-sm text-gray-400">{t.desc}</div>
             </button>
           ))}
         </div>
       </div>
       
-      <div className="mb-8">
-        <h2 className="text-xl mb-4 text-gray-400">Select Duration</h2>
-        <div className="flex gap-4">
+      <div className="mb-6 sm:mb-8">
+        <h2 className="text-lg sm:text-xl mb-3 sm:mb-4 text-gray-400">Select Duration</h2>
+        <div className="grid grid-cols-4 gap-3 sm:gap-4">
           {durations.map(d => (
             <button
               key={d}
               onClick={() => setSelectedDuration(d)}
-              className={`flex-1 py-4 rounded-xl text-xl font-bold transition-all ${
+              className={`py-3 sm:py-4 rounded-xl text-base sm:text-xl font-bold transition-all text-center ${
                 selectedDuration === d 
                   ? 'bg-blue-600 ring-2 ring-blue-400' 
                   : 'bg-gray-800 hover:bg-gray-700'
               }`}
             >
-              {d} min
+              {d}<span className="block text-xs sm:text-sm font-normal opacity-60">min</span>
             </button>
           ))}
         </div>
@@ -145,7 +145,7 @@ function WorkoutSelect({ onStart }) {
       <button
         onClick={() => selectedType && selectedDuration && onStart(selectedType, selectedDuration)}
         disabled={!selectedType || !selectedDuration}
-        className={`mt-auto py-5 rounded-xl text-2xl font-bold transition-all ${
+        className={`mt-auto py-4 sm:py-5 rounded-xl text-xl sm:text-2xl font-bold transition-all ${
           selectedType && selectedDuration
             ? 'bg-green-600 hover:bg-green-500'
             : 'bg-gray-700 text-gray-500 cursor-not-allowed'
@@ -237,10 +237,10 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
   if (isComplete) {
     return (
       <div className="bg-gray-900 text-white flex flex-col items-center justify-center p-6" style={{ height: '100%', maxHeight: '100%' }}>
-        <div className="text-6xl mb-4">🎉</div>
-        <h1 className="text-4xl font-bold mb-4">Workout Complete!</h1>
-        <p className="text-xl text-gray-400 mb-8">{duration} minute {workoutType} ride finished</p>
-        <button onClick={onEnd} className="px-8 py-4 bg-blue-600 rounded-xl text-xl font-bold">
+        <div className="text-5xl sm:text-6xl mb-4">🎉</div>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-center">Workout Complete!</h1>
+        <p className="text-lg sm:text-xl text-gray-400 mb-8 text-center">{duration} minute {workoutType} ride finished</p>
+        <button onClick={onEnd} className="px-8 py-4 bg-blue-600 rounded-xl text-lg sm:text-xl font-bold">
           Done
         </button>
       </div>
@@ -255,16 +255,16 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
       style={{ height: '100%', maxHeight: '100%', backgroundColor: typeInfo.bgColor }}
     >
       {/* Top bar */}
-      <div className="flex justify-between items-center px-6 py-3 shrink-0" style={{ background: 'rgba(0,0,0,0.3)' }}>
+      <div className="flex justify-between items-center px-4 sm:px-6 py-2 sm:py-3 shrink-0" style={{ background: 'rgba(0,0,0,0.3)' }}>
         <div>
           <div className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>
             {workoutType} · {duration} min
           </div>
-          <div className="text-lg font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <div className="text-base sm:text-lg font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>
             {formatTime(timeLeft)} remaining
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <button
             onClick={() => setIsPaused(!isPaused)}
             className="w-10 h-10 rounded-lg text-lg" style={{ background: 'rgba(255,255,255,0.1)' }}
@@ -286,37 +286,37 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex min-h-0">
+      {/* Main content — horizontal on landscape, vertical on portrait */}
+      <div className="flex-1 flex flex-col landscape:flex-row min-h-0">
         {/* Center hero */}
-        <div className="flex-1 flex flex-col items-center justify-center relative px-10">
+        <div className="flex-1 flex flex-col items-center justify-center relative px-4 sm:px-10">
           <div
-            className="font-black tracking-wide mb-2"
-            style={{ fontSize: '5rem', color: typeInfo.color, textShadow: '0 0 60px rgba(255,255,255,0.2)' }}
+            className="font-black tracking-wide mb-1 sm:mb-2 text-center"
+            style={{ fontSize: 'clamp(2rem, 10vw, 5rem)', color: typeInfo.color, textShadow: '0 0 60px rgba(255,255,255,0.2)' }}
           >
             {typeInfo.label}
           </div>
-          <div className="text-xl mb-8" style={{ color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}>
+          <div className="text-sm sm:text-xl mb-4 sm:mb-8 text-center" style={{ color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em' }}>
             {typeInfo.cue}
           </div>
 
           {/* Res / Timer / RPM row */}
-          <div className="flex items-baseline gap-12">
+          <div className="flex items-baseline gap-4 sm:gap-12">
             <div className="flex flex-col items-center">
-              <div className="text-6xl font-extrabold font-mono">{currentSegment.resistance}</div>
+              <div className="text-3xl sm:text-6xl font-extrabold font-mono">{currentSegment.resistance}</div>
               <div className="text-xs uppercase tracking-widest mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>res</div>
             </div>
-            <div className="font-mono font-bold" style={{ fontSize: '8rem', lineHeight: 1, letterSpacing: '-0.02em' }}>
+            <div className="font-mono font-bold" style={{ fontSize: 'clamp(3rem, 15vw, 8rem)', lineHeight: 1, letterSpacing: '-0.02em' }}>
               {formatTime(timeLeftInSegment)}
             </div>
             <div className="flex flex-col items-center">
-              <div className="text-6xl font-extrabold font-mono">{currentSegment.rpm}</div>
+              <div className="text-3xl sm:text-6xl font-extrabold font-mono">{currentSegment.rpm}</div>
               <div className="text-xs uppercase tracking-widest mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>rpm</div>
             </div>
           </div>
 
           {/* Segment progress bar */}
-          <div className="w-4/5 max-w-lg h-1.5 rounded-full mt-8 overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
+          <div className="w-4/5 max-w-lg h-1.5 rounded-full mt-4 sm:mt-8 overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
             <div
               className="h-full rounded-full"
               style={{ width: `${segmentProgress * 100}%`, backgroundColor: 'rgba(255,255,255,0.7)' }}
@@ -329,7 +329,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
               <div
                 key={Math.ceil(timeLeftInSegment)}
                 className="countdown-number text-white font-black select-none"
-                style={{ fontSize: '20rem', lineHeight: 1, textShadow: '0 0 120px rgba(255,255,255,0.4)' }}
+                style={{ fontSize: 'clamp(8rem, 40vw, 20rem)', lineHeight: 1, textShadow: '0 0 120px rgba(255,255,255,0.4)' }}
               >
                 {Math.ceil(timeLeftInSegment)}
               </div>
@@ -337,25 +337,28 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
           )}
         </div>
 
-        {/* Coming up panel */}
+        {/* Coming up panel — side on landscape, bottom on portrait */}
         {upcomingSegments.length > 0 && (
-          <div className="w-72 shrink-0 flex flex-col justify-center px-5 py-6 gap-3" style={{ background: 'rgba(0,0,0,0.2)' }}>
-            <div className="text-xs uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Coming up</div>
+          <div
+            className="shrink-0 landscape:w-72 landscape:flex-col landscape:justify-center portrait:flex-row portrait:overflow-x-auto px-3 sm:px-5 py-2 sm:py-6 gap-2 sm:gap-3 flex"
+            style={{ background: 'rgba(0,0,0,0.2)' }}
+          >
+            <div className="text-xs uppercase tracking-widest mb-1 hidden landscape:block" style={{ color: 'rgba(255,255,255,0.35)' }}>Coming up</div>
             {upcomingSegments.map((seg, i) => {
               const info = segmentTypes[seg.type];
               return (
                 <div
                   key={currentSegmentIndex + 1 + i}
                   onClick={() => setElapsed(upcomingTimes[i].start)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:brightness-125 transition-all`}
+                  className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl cursor-pointer hover:brightness-125 transition-all portrait:shrink-0 portrait:min-w-[140px]"
                   style={{ background: i === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)' }}
                 >
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: info.color }} />
+                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shrink-0" style={{ backgroundColor: info.color }} />
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm" style={{ color: info.color }}>{info.label}</div>
-                    <div className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{info.cue}</div>
+                    <div className="font-bold text-xs sm:text-sm" style={{ color: info.color }}>{info.label}</div>
+                    <div className="text-xs hidden landscape:block" style={{ color: 'rgba(255,255,255,0.4)' }}>{info.cue}</div>
                   </div>
-                  <div className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  <div className="font-mono text-xs sm:text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
                     {formatTime(seg.duration)}
                   </div>
                 </div>
@@ -366,7 +369,7 @@ function ActiveWorkout({ workoutType, duration, onEnd }) {
       </div>
 
       {/* Overall progress */}
-      <div className="px-6 pb-4 shrink-0">
+      <div className="px-4 sm:px-6 pb-3 sm:pb-4 shrink-0">
         <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
           <div
             className="h-full rounded-full"
